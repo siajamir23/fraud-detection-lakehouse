@@ -1,7 +1,7 @@
 {
   "name": "fraud_detection_pipeline",
   "job_id": 90298076188764,
-  "description": "Fraud detection lakehouse pipeline: synthetic data generation, bronze ingestion, silver transformation, gold aggregation. Tasks run sequentially on serverless compute, each depending on the previous task's success. Notebooks use full-refresh (overwrite) semantics, so each run regenerates and replaces the data. No schedule configured yet; triggered manually.",
+  "description": "Fraud detection lakehouse pipeline: synthetic data generation, bronze ingestion, silver transformation, gold aggregation, data quality verification. Tasks run sequentially on serverless compute, each depending on the previous task's success. The final task (data_quality_tests) runs the data quality suite and fails the run if silver contains invalid records or duplicate transaction IDs. Notebooks use full-refresh (overwrite) semantics, so each run regenerates and replaces the data. No schedule configured yet; triggered manually.",
   "format": "MULTI_TASK",
   "max_concurrent_runs": 1,
   "queue": { "enabled": true },
@@ -38,6 +38,15 @@
       "run_if": "ALL_SUCCESS",
       "notebook_task": {
         "notebook_path": "/Workspace/Users/sia.jamir23@gmail.com/fraud-detection-lakehouse/notebooks/04_gold_aggregation",
+        "source": "WORKSPACE"
+      }
+    },
+    {
+      "task_key": "data_quality_tests",
+      "depends_on": [{ "task_key": "gold_aggregation" }],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/sia.jamir23@gmail.com/fraud-detection-lakehouse/notebooks/05_data_quality_testing",
         "source": "WORKSPACE"
       }
     }

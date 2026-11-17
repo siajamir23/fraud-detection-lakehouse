@@ -73,3 +73,13 @@ Every filter drives a per-dataset parameter so predicates are applied before agg
 * Age groups derive from `age` via CASE buckets: 18-24, 25-34, 35-44, 45-54, 55-64, 65+.
 * Parameterized datasets are not materialization-eligible; the gold summary datasets are materialized on publish.
 * Risk categories (HIGH / MEDIUM / LOW) are assigned by the gold aggregation layer, not by the dashboard.
+
+## 8. Pipeline and data quality
+
+The `fraud_detection_pipeline` Lakeflow Job (ID 90298076188764) orchestrates the dashboard's data on serverless compute with five sequential notebook tasks:
+
+generate_synthetic_data → bronze_ingestion → silver_transformation → gold_aggregation → data_quality_tests
+
+* The job's spec is committed at `jobs/fraud_detection_pipeline.job.json`; it is triggered manually (no schedule yet).
+* Notebooks use full-refresh (overwrite) semantics: each run regenerates and replaces the data in every layer.
+* The `data_quality_tests` task runs `notebooks/05_data_quality_testing` as the final stage. It creates deliberately invalid records (missing customer ID, invalid merchant ID, negative amount, invalid fraud label, null timestamp) and quarantines each through boolean check columns with referential-integrity joins; it verifies duplicate transaction IDs are identified; and it asserts that the full silver transactions table (100,000 records) has zero check failures and zero duplicate transaction IDs. Any assertion failure fails the pipeline run.
